@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stickman Tower Defense</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    margin: 0;
+    background: #111827;
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: hidden;
+}
+
+#topbar {
+    height: 70px;
+    background: #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-bottom: 3px solid #374151;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.stat {
+    background: #111827;
+    padding: 10px 18px;
+    border-radius: 12px;
+}
+
+#game {
+    position: relative;
+    width: 100vw;
+    height: calc(100vh - 70px);
+    overflow: hidden;
+    background:
+        linear-gradient(#00000008 1px, transparent 1px),
+        linear-gradient(90deg, #00000008 1px, transparent 1px),
+        #6ab04c;
+    background-size: 40px 40px;
+}
+
+#path {
+    position: absolute;
+    left: -5%;
+    top: 43%;
+    width: 110%;
+    height: 115px;
+    background: #c8a165;
+    border-top: 5px solid #a67c45;
+    border-bottom: 5px solid #a67c45;
+    box-shadow: inset 0 0 15px #0002;
+}
+
+#base {
+    position: absolute;
+    right: 15px;
+    top: calc(43% + 20px);
+    width: 85px;
+    height: 75px;
+    background: #3498db;
+    border: 5px solid #1e6091;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 45px;
+    z-index: 3;
+}
+
+#buildMenu {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    padding: 12px;
+    border-radius: 15px;
+    border: 2px solid #4b5563;
+    z-index: 20;
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    border: none;
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+button:hover {
+    background: #3b82f6;
+    transform: scale(1.03);
+}
+
+button:disabled {
+    background: #4b5563;
+    cursor: not-allowed;
+}
+
+#startWave {
+    background: #16a34a;
+}
+
+#startWave:hover {
+    background: #22c55e;
+}
+
+.enemy {
+    position: absolute;
+    width: 45px;
+    height: 70px;
+    z-index: 8;
+    transition: left .05s linear;
+}
+
+.enemy .head {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #222;
+    left: 10px;
+    top: 0;
+}
+
+.enemy .body {
+    position: absolute;
+    width: 5px;
+    height: 30px;
+    background: #222;
+    left: 20px;
+    top: 23px;
+}
+
+.enemy .arm1,
+.enemy .arm2,
+.enemy .leg1,
+.enemy .leg2 {
+    position: absolute;
+    width: 5px;
+    height: 25px;
+    background: #222;
+    transform-origin: top;
+}
+
+.enemy .arm1 {
+    left: 20px;
+    top: 25px;
+    transform: rotate(45deg);
+}
+
+.enemy .arm2 {
+    left: 20px;
+    top: 25px;
+    transform: rotate(-45deg);
+}
+
+.enemy .leg1 {
+    left: 20px;
+    top: 50px;
+    transform: rotate(30deg);
+}
+
+.enemy .leg2 {
+    left: 20px;
+    top: 50px;
+    transform: rotate(-30deg);
+}
+
+.enemyHealth {
+    position: absolute;
+    top: -10px;
+    left: 2px;
+    width: 40px;
+    height: 5px;
+    background: #222;
+    border-radius: 5px;
+}
+
+.enemyHealthBar {
+    width: 100%;
+    height: 100%;
+    background: #ef4444;
+    border-radius: 5px;
+}
+
+.tower {
+    position: absolute;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 4px solid #172554;
+    z-index: 6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 34px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px #0004;
+}
+
+.tower:hover {
+    filter: brightness(1.2);
+}
+
+.bullet {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    background: #facc15;
+    border-radius: 50%;
+    z-index: 10;
+    box-shadow: 0 0 8px #fff;
+}
+
+.damage {
+    position: absolute;
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+    z-index: 30;
+    pointer-events: none;
+    animation: damageAnim .6s forwards;
+}
+
+@keyframes damageAnim {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+}
+
+#message {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111827dd;
+    padding: 10px 20px;
+    border-radius: 10px;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity .3s;
+}
+
+#gameOver {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: #000b;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+#gameOver h1 {
+    font-size: 50px;
+    margin: 10px;
+}
+
+#gameOver p {
+    font-size: 22px;
+}
+
+#gameOver button {
+    margin-top: 15px;
+}
+
+.range {
+    position: absolute;
+    border: 2px dashed #60a5fa55;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 4;
+}
+
+@media(max-width:700px) {
+    #topbar {
+        font-size: 13px;
+    }
+
+    .stat {
+        padding: 8px;
+    }
+
+    #buildMenu {
+        width: 95%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    button {
+        padding: 9px 10px;
+        font-size: 12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="topbar">
+    <div class="stat">?? <span id="money">150</span></div>
+    <div class="stat">?? <span id="lives">20</span></div>
+    <div class="stat">?? Vague <span id="wave">0</span></div>
+    <div class="stat">?? <span id="kills">0</span></div>
+</div>
+
+<div id="game">
+
+    <div id="path"></div>
+
+    <div id="base">??</div>
+
+    <div id="message"></div>
+
+    <div id="buildMenu">
+        <button id="towerButton">
+            ?? Archer — 50??
+        </button>
+
+        <button id="upgradeButton">
+            ?? Améliorer
+        </button>
+
+        <button id="startWave">
+            ?? Lancer la vague
+        </button>
+    </div>
+
+    <div id="gameOver">
+        <div style="font-size:70px">??</div>
+        <h1 id="gameOverTitle">Défaite</h1>
+        <p id="gameOverText"></p>
+        <button onclick="location.reload()">?? Rejouer</button>
+    </div>
+
+</div>
+
+<script>
+
+const game = document.getElementById("game");
+
+const moneyText = document.getElementById("money");
+const livesText = document.getElementById("lives");
+const waveText = document.getElementById("wave");
+const killsText = document.getElementById("kills");
+
+const towerButton = document.getElementById("towerButton");
+const upgradeButton = document.getElementById("upgradeButton");
+const startWaveButton = document.getElementById("startWave");
+
+const message = document.getElementById("message");
+
+let money = 150;
+let lives = 20;
+let wave = 0;
+let kills = 0;
+
+let enemies = [];
+let towers = [];
+let bullets = [];
+
+let selectedTower = null;
+let building = false;
+let waveRunning = false;
+let gameEnded = false;
+
+const pathY = window.innerHeight * 0.43 - 70 / 2;
+
+/* =========================
+   UTILITAIRES
+========================= */
+
+function updateUI() {
+    moneyText.textContent = money;
+    livesText.textContent = lives;
+    waveText.textContent = wave;
+    killsText.textContent = kills;
+
+    upgradeButton.disabled =
+        !selectedTower ||
+        money < selectedTower.upgradeCost;
+}
+
+function showMessage(text) {
+    message.textContent = text;
+    message.style.opacity = 1;
+
+    setTimeout(() => {
+        message.style.opacity = 0;
+    }, 1600);
+}
+
+/* =========================
+   TOURS
+========================= */
+
+towerButton.addEventListener("click", () => {
+
+    if (money < 50) {
+        showMessage("?? Pas assez d'argent !");
+        return;
+    }
+
+    building = true;
+    showMessage("?? Clique sur l'herbe pour placer ton unité !");
+});
+
+game.addEventListener("click", (e) => {
+
+    if (!building || gameEnded) return;
+
+    if (
+        e.target.closest(".tower") ||
+        e.target.closest("#buildMenu") ||
+        e.target.closest("#gameOver")
+    ) {
+        return;
+    }
+
+    const rect = game.getBoundingClientRect();
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Pas sur la route
+    const pathTop = window.innerHeight * 0.43 - 70;
+    const pathBottom = pathTop + 115;
+
+    if (y > pathTop - 30 && y < pathBottom + 30) {
+        showMessage("?? Impossible de construire ici !");
+        return;
+    }
+
+    createTower(x, y);
+
+    building = false;
+});
+
+function createTower(x, y) {
+
+    if (money < 50) return;
+
+    money -= 50;
+
+    const tower = {
+        x,
+        y,
+        level: 1,
+        damage: 15,
+        range: 190,
+        fireRate: 850,
+        lastShot: 0,
+        upgradeCost: 75,
+        element: document.createElement("div"),
+        rangeElement: document.createElement("div")
+    };
+
+    tower.element.className = "tower";
+    tower.element.textContent = "??";
+
+    tower.element.style.left = (x - 32) + "px";
+    tower.element.style.top = (y - 32) + "px";
+
+    tower.rangeElement.className = "range";
+
+    tower.rangeElement.style.width = tower.range * 2 + "px";
+    tower.rangeElement.style.height = tower.range * 2 + "px";
+
+    tower.rangeElement.style.left =
+        (x - tower.range) + "px";
+
+    tower.rangeElement.style.top =
+        (y - tower.range) + "px";
+
+    game.appendChild(tower.rangeElement);
+    game.appendChild(tower.element);
+
+    towers.push(tower);
+
+    tower.element.addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        selectedTower = tower;
+
+        showMessage(
+            "?? Niveau " +
+            tower.level +
+            " — Amélioration : " +
+            tower.upgradeCost +
+            "??"
+        );
+
+        updateUI();
+    });
+
+    updateUI();
+}
+
+/* =========================
+   AMÉLIORATIONS
+========================= */
+
+upgradeButton.addEventListener("click", () => {
+
+    if (!selectedTower) return;
+
+    const tower = selectedTower;
+
+    if (money < tower.upgradeCost) {
+        showMessage("?? Pas assez d'argent !");
+        return;
+    }
+
+    money -= tower.upgradeCost;
+
+    tower.level++;
+    tower.damage += 12;
+    tower.range += 15;
+    tower.fireRate *= 0.88;
+    tower.upgradeCost = Math.floor(tower.upgradeCost * 1.6);
+
+    tower.rangeElement.style.width =
+        tower.range * 2 + "px";
+
+    tower.rangeElement.style.height =
+        tower.range * 2 + "px";
+
+    tower.rangeElement.style.left =
+        (tower.x - tower.range) + "px";
+
+    tower.rangeElement.style.top =
+        (tower.y - tower.range) + "px";
+
+    tower.element.style.background =
+        tower.level >= 3 ? "#7c3aed" : "#2563eb";
+
+    showMessage("?? Unité améliorée !");
+
+    updateUI();
+});
+
+/* =========================
+   ENNEMIS
+========================= */
+
+function createEnemy() {
+
+    const enemy = {
+        x: -60,
+        y: window.innerHeight * 0.43 + 5,
+        hp: 35 + wave * 12,
+        maxHp: 35 + wave * 12,
+        speed: 0.55 + wave * 0.025,
+        reward: 12 + Math.floor(wave * 1.5),
+        element: document.createElement("div"),
+        health: null
+    };
+
+    enemy.element.className = "enemy";
+
+    enemy.element.innerHTML = `
+        <div class="enemyHealth">
+            <div class="enemyHealthBar"></div>
+        </div>
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="arm1"></div>
+        <div class="arm2"></div>
+        <div class="leg1"></div>
+        <div class="leg2"></div>
+    `;
+
+    enemy.health =
+        enemy.element.querySelector(".enemyHealthBar");
+
+    game.appendChild(enemy.element);
+
+    enemies.push(enemy);
+}
+
+function updateEnemies() {
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+
+        const enemy = enemies[i];
+
+        enemy.x += enemy.speed;
+
+        enemy.element.style.left =
+            enemy.x + "px";
+
+        enemy.element.style.top =
+            enemy.y + "px";
+
+        enemy.health.style.width =
+            Math.max(0, enemy.hp / enemy.maxHp * 100) + "%";
+
+        // Arrivée à la base
+        if (enemy.x > window.innerWidth - 80) {
+
+            enemy.element.remove();
+
+            enemies.splice(i, 1);
+
+            lives--;
+
+            livesText.textContent = lives;
+
+            if (lives <= 0) {
+                endGame(false);
+            }
+        }
+    }
+}
+
+/* =========================
+   TIRS
+========================= */
+
+function distance(tower, enemy) {
+
+    const dx = tower.x - enemy.x;
+    const dy = tower.y - enemy.y;
+
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function shoot(tower, enemy) {
+
+    const bullet = {
+        x: tower.x,
+        y: tower.y,
+        target: enemy,
+        damage: tower.damage,
+        speed: 7,
+        element: document.createElement("div")
+    };
+
+    bullet.element.className = "bullet";
+
+    bullet.element.style.left =
+        bullet.x + "px";
+
+    bullet.element.style.top =
+        bullet.y + "px";
+
+    game.appendChild(bullet.element);
+
+    bullets.push(bullet);
+}
+
+function updateTowers() {
+
+    const now = Date.now();
+
+    towers.forEach(tower => {
+
+        if (now - tower.lastShot < tower.fireRate)
+            return;
+
+        let target = null;
+        let closest = Infinity;
+
+        enemies.forEach(enemy => {
+
+            const d = distance(tower, enemy);
+
+            if (d < tower.range && enemy.x > -20) {
+
+                if (enemy.x < closest) {
+                    closest = enemy.x;
+                    target = enemy;
+                }
+            }
+        });
+
+        if (target) {
+
+            shoot(tower, target);
+
+            tower.lastShot = now;
+        }
+    });
+}
+
+/* =========================
+   BALLES
+========================= */
+
+function updateBullets() {
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+
+        const bullet = bullets[i];
+
+        if (!bullet.target ||
+            !enemies.includes(bullet.target)) {
+
+            bullet.element.remove();
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        const target = bullet.target;
+
+        const dx = target.x + 20 - bullet.x;
+        const dy = target.y + 30 - bullet.y;
+
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 10) {
+
+            target.hp -= bullet.damage;
+
+            showDamage(
+                target.x,
+                target.y,
+                bullet.damage
+            );
+
+            bullet.element.remove();
+
+            bullets.splice(i, 1);
+
+            if (target.hp <= 0) {
+
+                const index = enemies.indexOf(target);
+
+                if (index !== -1) {
+                    enemies.splice(index, 1);
+                }
+
+                target.element.remove();
+
+                money += target.reward;
+                kills++;
+
+                updateUI();
+            }
+
+            continue;
+        }
+
+        bullet.x += dx / dist * bullet.speed;
+        bullet.y += dy / dist * bullet.speed;
+
+        bullet.element.style.left =
+            bullet.x + "px";
+
+        bullet.element.style.top =
+            bullet.y + "px";
+    }
+}
+
+function showDamage(x, y, damage) {
+
+    const d = document.createElement("div");
+
+    d.className = "damage";
+    d.textContent = "-" + damage;
+
+    d.style.left = x + "px";
+    d.style.top = y + "px";
+
+    game.appendChild(d);
+
+    setTimeout(() => d.remove(), 600);
+}
+
+/* =========================
+   VAGUES
+========================= */
+
+startWaveButton.addEventListener("click", () => {
+
+    if (waveRunning || gameEnded) return;
+
+    startWave();
+});
+
+function startWave() {
+
+    wave++;
+
+    waveRunning = true;
+
+    startWaveButton.disabled = true;
+
+    updateUI();
+
+    const enemyCount = 5 + wave * 2;
+
+    let spawned = 0;
+
+    const spawnTimer = setInterval(() => {
+
+        if (gameEnded) {
+            clearInterval(spawnTimer);
+            return;
+        }
+
+        createEnemy();
+
+        spawned++;
+
+        if (spawned >= enemyCount) {
+
+            clearInterval(spawnTimer);
+
+            checkWaveEnd();
+        }
+
+    }, Math.max(350, 800 - wave * 25));
+}
+
+function checkWaveEnd() {
+
+    if (gameEnded) return;
+
+    if (enemies.length === 0) {
+
+        waveRunning = false;
+
+        startWaveButton.disabled = false;
+
+        if (wave >= 10) {
+            endGame(true);
+            return;
+        }
+
+        // Bonus entre les vagues
+        money += 25 + wave * 5;
+
+        showMessage(
+            "?? Vague terminée ! +" +
+            (25 + wave * 5) +
+            "??"
+        );
+
+        updateUI();
+
+    } else {
+
+        setTimeout(checkWaveEnd, 500);
+    }
+}
+
+/* =========================
+   FIN
+========================= */
+
+function endGame(win) {
+
+    if (gameEnded) return;
+
+    gameEnded = true;
+
+    document.getElementById("gameOver").style.display =
+        "flex";
+
+    document.getElementById("gameOverTitle").textContent =
+        win ? "?? Victoire !" : "?? Défaite";
+
+    document.getElementById("gameOverText").textContent =
+        win
+        ? "Tu as survécu aux 10 vagues !"
+        : "Ta base a été détruite...";
+
+    startWaveButton.disabled = true;
+}
+
+/* =========================
+   BOUCLE DU JEU
+========================= */
+
+function gameLoop() {
+
+    if (!gameEnded) {
+
+        updateEnemies();
+        updateTowers();
+        updateBullets();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+updateUI();
+gameLoop();
+
+</script>
+
+</body>
+</html>
